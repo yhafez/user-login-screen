@@ -15,5 +15,7 @@
 	"transform": {
 		"^.+\\.(ts|tsx)?$": "ts-jest",
 		"^.+\\.(js|jsx)$": "babel-jest"
-	}
+	},
+	"modulePaths": ["<rootDir>/src/"],
+	"modulePathIgnorePatterns": ["<rootDir>/dist/", "<rootDir>/node_modules/", "<rootDir>/tests"]
 }

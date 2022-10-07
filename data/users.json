@@ -6503,6 +6503,85 @@
       "address": "3102 Joe Valleys",
       "password": "8f1712638dcd5af48aa05a50cc3110d0541fc81b07d70e59fccc8733572b923a54420422ae19fbe2af458fac62f16e64c6895cb4e9148df67832fa65a6853839",
       "salt": "550f5211b05288029164077465446f47"
+    },
+    {
+      "_id": "ce48d74c-7b76-4659-bfc4-4f80448b4434",
+      "guid": "442f7377-a5d8-41f8-ad1f-b041741267d8",
+      "isActive": true,
+      "balance": "$0.00",
+      "picture": "https://randomuser.me/api",
+      "age": 32,
+      "eyeColor": "green",
+      "name": {
+        "first": "John",
+        "last": "Doe"
+      },
+      "company": "Nienow Group",
+      "email": "Wilfrid_Botsford@gmail.com",
+      "phone": "+1-696-428-998",
+      "address": "2383 Tremblay Valley",
+      "password": "aa637c5a47db4f6a71e8e8a58af40d7bbe952886c5110203d1d2dc10c8a786c6eaa4b0166472f028dc054bf4e19b369077badc82d391b16d9d2dd4b1022cde5f",
+      "salt": "9ce02ea2863bbcd424a7560e14461f7f"
+    },
+    {
+      "_id": "5321cf28-7326-4eb3-87fb-c291aa2c745c",
+      "guid": "9592528d-af36-43c6-8b12-406fc74a1424",
+      "isActive": true,
+      "balance": "$0.00",
+      "picture": "https://randomuser.me/api",
+      "age": 32,
+      "name": {
+        "first": "test",
+        "last": "test"
+      },
+      "email": "Alyson92@hotmail.com",
+      "password": "5b411b10826065fe96b4de7f76c0e2bea0d9f24e665640a1b897c1ce094db6779b0bcd6ca5a39a69cea4f9ed62f5964d02363839a3d2babc283613dd625ab132",
+      "salt": "078469a1b0f4f74187ba437e6f4d56b3"
+    },
+    {
+      "_id": "a2af0449-aa0e-4dab-b900-e26ced04ce9a",
+      "guid": "f790c736-b3e4-4003-8369-852949f2759c",
+      "isActive": true,
+      "balance": "$0.00",
+      "picture": "https://randomuser.me/api",
+      "age": 32,
+      "name": {
+        "first": "test",
+        "last": "test"
+      },
+      "email": "Anahi18@gmail.com",
+      "password": "778d70d075758a552d077d7e92baae59e9e7e2bfab1b1f0c0b70850faeb10701fdc841c26041376203654a6e12408561fe96cb9f7c13cc15262965eb3a108212",
+      "salt": "83174b36f10107f3da625ca294fbd13b"
+    },
+    {
+      "_id": "cec552e2-82c7-4e7b-ab89-339757370120",
+      "guid": "1e1b6672-ff7a-4e90-8ea5-8407aad3e274",
+      "isActive": true,
+      "balance": "$0.00",
+      "picture": "https://randomuser.me/api",
+      "age": 32,
+      "name": {
+        "first": "test",
+        "last": "test"
+      },
+      "email": "Breanna.Howell42@gmail.com",
+      "password": "c768b18d12fab20f3cba325e9b5c1dd78abc81b95d600ce1b9d435d3f0a5237ca051488216c51031cf58ab6bc8aff0d261e7419d8903e607e04d0488e7e22cdc",
+      "salt": "3c80d3742bc7c5322f7733872518a237"
+    },
+    {
+      "_id": "d3fd07d3-586d-44b0-ada0-8c888e6b64fc",
+      "guid": "2f800979-725b-4e75-9447-6727b511d43b",
+      "isActive": true,
+      "balance": "$0.00",
+      "picture": "https://randomuser.me/api",
+      "age": 32,
+      "name": {
+        "first": "test",
+        "last": "test"
+      },
+      "email": "Delmer.Donnelly61@hotmail.com",
+      "password": "9ef177cebf43c61791cf92a477b1a98a35220d22b32c0159f514562e62904404228db5f11851271bd98849fb56ffb3648184423d0732c625445ce84c73910d7d",
+      "salt": "d1cbdcb73810ab64b47a48f16e1989d2"
     }
   ]
 }

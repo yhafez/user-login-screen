@@ -1,4 +1,4 @@
-import { useEffect, FC } from 'react'
+import { useEffect } from 'react'
 import { Box, Button, Typography } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import { Circles } from 'react-loader-spinner'
@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from '../store'
 import { clearLoading, loadUser, register } from '../store/actions/auth'
 
 import Input from '../components/Input'
+// @ts-ignore
 import { phoneRegExp } from '../helpers'
 
 const Signup = () => {

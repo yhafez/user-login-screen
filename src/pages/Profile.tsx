@@ -17,6 +17,7 @@ import {
 	UpdateUserFormData,
 } from '../store/actions/auth'
 import Input from '../components/Input'
+// @ts-ignore
 import { phoneRegExp } from '../helpers'
 import userThumbnail from '../assets/profile.jpg'
 
