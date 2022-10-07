@@ -1,15 +1,14 @@
 import '@testing-library/jest-dom'
 
-window.matchMedia = query => ({
-	matches: false,
-	media: query,
-	onchange: null,
-	addEventListener: jest.fn(),
-	removeEventListener: jest.fn(),
-	dispatchEvent: jest.fn(),
-	addListener: jest.fn(),
-	removeListener: jest.fn(),
-})
+window.matchMedia =
+	window.matchMedia ||
+	function () {
+		return {
+			matches: false,
+			addListener: function () {},
+			removeListener: function () {},
+		}
+	}
 
 Object.defineProperty(URL, 'createObjectURL', {
 	writable: true,

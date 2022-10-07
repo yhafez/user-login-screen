@@ -11,7 +11,7 @@ import { clearLoading, loadUser, register } from '../store/actions/auth'
 import Input from '../components/Input'
 import { phoneRegExp } from '../helpers'
 
-const Signup: FC = () => {
+const Signup = () => {
 	const navigate = useNavigate()
 	const dispatch = useAppDispatch()
 
