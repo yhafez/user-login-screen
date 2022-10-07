@@ -37,7 +37,6 @@ app.post('/auth/register', validateFormData, async (req, res) => {
 		const { email, password, name, birthdate, company, eyeColor, phone, address } = req.body
 		const { first, last } = name
 		if (moment(birthdate, 'YYYY-MM-DD', true).isValid() === false) {
-			console.log('birthdate', birthdate)
 			return res.status(400).json({ message: 'Birthdate must be in the format YYYY-MM-DD' })
 		}
 		// Check if email is already taken
@@ -163,23 +162,13 @@ app.get('/users/:id', authenticateUser, (req, res) => {
 
 app.put('/users/:id', authenticateUser, validateFormData, async (req, res) => {
 	try {
-		console.log('HERE1')
 		const user = db.data?.users.find(u => u._id === req.params.id)
-		console.log('HERE2')
-		if (!user) {
-			console.log('HERE3')
-			return res.status(400).json({ message: 'User not found' })
-		}
+		if (!user) return res.status(400).json({ message: 'User not found' })
 
-		console.log('HERE4')
 		const { email, name, birthdate, password, company, eyeColor, phone, address } = req.body
-		console.log('HERE5')
 		user.email = email.trim()
-		console.log('HERE6')
 		user.name.first = name.first.trim()
-		console.log('HERE7')
 		user.name.last = name.last.trim()
-		console.log('HERE8')
 		user.age = moment().diff(birthdate.trim().slice(0, 10), 'years', false, 'YYYY-MM-DD')
 		if (company) user.company = company.trim()
 		if (eyeColor) user.eyeColor = eyeColor.trim()

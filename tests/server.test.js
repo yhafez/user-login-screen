@@ -323,7 +323,6 @@ describe('GET /auth/me', () => {
 		const res = await request.get('/auth/me').set('Authorization', 'Bearer invalidToken')
 		expect(res).to.have.status(403)
 		expect(res.body).to.be.an('object')
-		console.log(res.body)
 		expect(res.body).to.have.property('message')
 		expect(res.body.message).to.be.a('string')
 		expect(res.body.message).to.equal('Forbidden')
