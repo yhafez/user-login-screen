@@ -55,5 +55,5 @@ Below is an example of user login inside the database.
 ~~- Implememnt password hashing (eg. append a salt onto the password before hash with SHA1)~~
 ~~\* Fully responsive UI~~
 
-- Unit Tests of the API
-  ~~- Functional Tests of the UI~~
+~~- Unit Tests of the API~~
+~~- Functional Tests of the UI~~
