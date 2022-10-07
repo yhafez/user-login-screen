@@ -25,14 +25,14 @@ app.get('/', (req, res) => {
 
 const file = join(__dirname, 'data/users.json')
 const adapter = new JSONFile(file)
-const db = new Low(adapter)
+export const db = new Low(adapter)
 db.read()
 
 app.get('/auth/me', authenticateUser, (req, res) => {
-	res.json(req.user)
+	res.json({ user: req.user })
 })
 
-app.post('/auth/register', validateFormData, async (req, res) => {
+app.post('/auth/register', validateFormData, async (req, res, next) => {
 	try {
 		const { email, password, name, birthdate, company, eyeColor, phone, address } = req.body
 		const { first, last } = name
@@ -98,21 +98,19 @@ app.post('/auth/login', async (req, res) => {
 
 		return res.json({ token, user: { ...user, password: '', salt: '' } })
 	} catch (err) {
-		console.log(err)
 		next(err)
 	}
 })
 
-app.get('/auth/logout', (req, res) => {
+app.get('/auth/logout', (req, res, next) => {
 	try {
 		res.json({ message: 'User logged out' })
 	} catch (err) {
-		console.log(err)
 		next(err)
 	}
 })
 
-app.get('/users', authenticateUser, (req, res) => {
+app.get('/users', authenticateUser, (req, res, next) => {
 	try {
 		const { page = 1, limit = 10 } = req.query
 		const startIndex = (page - 1) * limit
@@ -141,12 +139,11 @@ app.get('/users', authenticateUser, (req, res) => {
 
 		return res.json(results)
 	} catch (err) {
-		console.log(err)
 		next(err)
 	}
 })
 
-app.get('/users/:id', authenticateUser, (req, res) => {
+app.get('/users/:id', authenticateUser, (req, res, next) => {
 	try {
 		const user = db.data?.users.find(u => u._id === req.params.id)
 		if (!user) {
@@ -155,21 +152,21 @@ app.get('/users/:id', authenticateUser, (req, res) => {
 
 		return res.json({ ...user, password: '', salt: '' })
 	} catch (err) {
-		console.log(err)
 		next(err)
 	}
 })
 
-app.put('/users/:id', authenticateUser, validateFormData, async (req, res) => {
+app.put('/users/:id', authenticateUser, validateFormData, async (req, res, next) => {
 	try {
 		const user = db.data?.users.find(u => u._id === req.params.id)
 		if (!user) return res.status(400).json({ message: 'User not found' })
 
-		const { email, name, birthdate, password, company, eyeColor, phone, address } = req.body
+		const { email, name, age, password, company, eyeColor, phone, address } = req.body
+
 		user.email = email.trim()
 		user.name.first = name.first.trim()
 		user.name.last = name.last.trim()
-		user.age = moment().diff(birthdate.trim().slice(0, 10), 'years', false, 'YYYY-MM-DD')
+		user.age = age
 		if (company) user.company = company.trim()
 		if (eyeColor) user.eyeColor = eyeColor.trim()
 		if (phone) user.phone = phone.trim()
@@ -181,14 +178,14 @@ app.put('/users/:id', authenticateUser, validateFormData, async (req, res) => {
 		await db.write()
 
 		req.user = user
-		return res.json({ ...user, password: '', salt: '' })
+		return res.json({ user: { ...user, password: '', salt: '' } })
 	} catch (err) {
 		console.log(err)
 		next(err)
 	}
 })
 
-app.delete('/users/:id', authenticateUser, async (req, res) => {
+app.delete('/users/:id', authenticateUser, async (req, res, next) => {
 	try {
 		const user = db.data?.users.find(u => u._id === req.params.id)
 		if (!user) {
@@ -203,7 +200,6 @@ app.delete('/users/:id', authenticateUser, async (req, res) => {
 
 		return res.status(500).json({ message: 'Something went wrong' })
 	} catch (err) {
-		console.log(err)
 		next(err)
 	}
 })

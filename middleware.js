@@ -1,30 +1,56 @@
 import moment from 'moment'
 import jwt from 'jsonwebtoken'
+import { db } from './server.js'
 
 import { phoneRegex, emailRegex, passwordRegex } from './src/helpers.js'
 
-export const authenticateUser = (req, res, next) => {
+export const authenticateUser = async (req, res, next) => {
 	try {
-		const authHeader = req.headers['authorization']
-		const token = authHeader && authHeader.split(' ')[1]
-		if (token == null) return res.status(401).json({ message: 'Unauthorized' })
-		jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-			if (err) return res.status(403).json({ message: 'Forbidden' })
+		const authHeader = req.headers.authorization
+		if (!authHeader) {
+			return res.status(401).json({ message: 'No authorization header' })
+		}
 
-			req.user = { ...user, password: '', salt: '' }
-			next()
+		const token = authHeader.split(' ')[1]
+		if (!token || token === '' || token === 'null') {
+			return res.status(401).json({ message: 'No token found' })
+		}
+
+		const decoded = jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+			if (err) {
+				return res.status(403).json({ message: 'Invalid token' })
+			}
+			return decoded
 		})
+
+		if (!decoded) {
+			return res.status(401).json({ message: 'Invalid token' })
+		}
+
+		const user = db.data?.users.find(u => u._id === decoded._id)
+		if (!user) {
+			return res.status(401).json({ message: 'User not found' })
+		}
+
+		req.user = user
+		next()
 	} catch (err) {
-		console.log(err)
 		next(err)
 	}
 }
 
 export const validateFormData = (req, res, next) => {
 	try {
-		const { email, password, name, birthdate, company, eyeColor, phone, address } = req.body
+		const { email, password, name, birthdate, age, company, eyeColor, phone, address } = req.body
 		// Validate required fields
-		if (!name || !name?.first?.trim() || !name?.last?.trim() || !email || !password || !birthdate) {
+		if (
+			!name ||
+			!name?.first?.trim() ||
+			!name?.last?.trim() ||
+			!email ||
+			!password ||
+			(!birthdate && !age)
+		) {
 			return res.status(400).json({ message: 'Please fill all the fields' })
 		}
 
@@ -90,26 +116,28 @@ export const validateFormData = (req, res, next) => {
 		}
 
 		// Validate birthdate
-		if (!birthdate.startsWith('19') && !birthdate.startsWith('20')) {
-			return res.status(400).json({ message: 'Birthdate is not valid' })
-		}
-		if (moment(birthdate).isAfter(moment())) {
-			return res.status(400).json({ message: 'Birthdate cannot be in the future' })
-		}
-		if (moment(birthdate).isBefore(moment().subtract(100, 'years'))) {
-			return res.status(400).json({ message: 'Birthdate cannot be more than 100 years ago' })
-		}
-		if (moment().diff(moment(birthdate), 'years') < 18) {
-			return res.status(400).json({ message: 'You must be at least 18 years old' })
-		}
-		if (birthdate.includes(' ')) {
-			return res.status(400).json({ message: 'Birthdate cannot contain spaces' })
-		}
-		if (typeof birthdate !== 'string') {
-			return res.status(400).json({ message: 'Birthdate must be a string' })
-		}
-		if (moment(birthdate.slice(0, 10), 'YYYY-MM-DD', true).isValid() === false) {
-			return res.status(400).json({ message: 'Birthdate must be in the format YYYY-MM-DD' })
+		if (birthdate) {
+			if (!birthdate.startsWith('19') && !birthdate.startsWith('20')) {
+				return res.status(400).json({ message: 'Birthdate is not valid' })
+			}
+			if (moment(birthdate).isAfter(moment())) {
+				return res.status(400).json({ message: 'Birthdate cannot be in the future' })
+			}
+			if (moment(birthdate).isBefore(moment().subtract(100, 'years'))) {
+				return res.status(400).json({ message: 'Birthdate cannot be more than 100 years ago' })
+			}
+			if (moment().diff(moment(birthdate), 'years') < 18) {
+				return res.status(400).json({ message: 'You must be at least 18 years old' })
+			}
+			if (birthdate.includes(' ')) {
+				return res.status(400).json({ message: 'Birthdate cannot contain spaces' })
+			}
+			if (typeof birthdate !== 'string') {
+				return res.status(400).json({ message: 'Birthdate must be a string' })
+			}
+			if (moment(birthdate.slice(0, 10), 'YYYY-MM-DD', true).isValid() === false) {
+				return res.status(400).json({ message: 'Birthdate must be in the format YYYY-MM-DD' })
+			}
 		}
 
 		// Validate eye color

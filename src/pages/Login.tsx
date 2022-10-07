@@ -20,13 +20,25 @@ const Login = () => {
 	}, [])
 
 	useEffect(() => {
-		dispatch(loadUser())
-
-		const token = localStorage.getItem('token')
-		if (isAuthenticated.status && token) {
-			navigate(`/profile/${isAuthenticated.user?._id}`)
+		async function dispatchLoadUser() {
+			await dispatch(loadUser())
 		}
-	}, [dispatch, isAuthenticated.status, navigate])
+
+		try {
+			dispatchLoadUser()
+
+			const token = localStorage.getItem('token')
+			if (isAuthenticated.status && token) navigate(`/profile/${isAuthenticated.user?._id}`)
+
+			return () => dispatch(clearLoading())
+		} catch (err) {
+			console.error(err)
+
+			return () => {
+				dispatch(clearLoading())
+			}
+		}
+	}, [isAuthenticated.status])
 
 	const formik = useFormik({
 		initialValues: {
@@ -39,8 +51,19 @@ const Login = () => {
 				.min(6, 'Password must be at least 6 characters')
 				.required('Password is required'),
 		}),
-		onSubmit: values => {
-			dispatch(login(values))
+		onSubmit: async values => {
+			try {
+				await dispatch(login(values))
+
+				const token = localStorage.getItem('token')
+				if (isAuthenticated.status && token) navigate(`/profile/${isAuthenticated.user?._id}`)
+			} catch (err) {
+				console.error(err)
+
+				return () => {
+					dispatch(clearLoading())
+				}
+			}
 		},
 	})
 
@@ -61,7 +84,9 @@ const Login = () => {
 			) : (
 				<>
 					<img src={Logo} alt="Smart Pump" style={{ width: '8rem', padding: '1rem' }} />
-					<Typography sx={{ color: 'error.main' }}>{error.status && error.message}</Typography>
+					<Typography sx={{ color: 'error.main' }}>
+						{error.status && error.statusCode !== 401 && error.statusCode !== 403 && error.message}
+					</Typography>
 					<form onSubmit={formik.handleSubmit}>
 						<Input
 							id="email"

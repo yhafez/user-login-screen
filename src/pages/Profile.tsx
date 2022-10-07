@@ -18,7 +18,7 @@ import {
 } from '../store/actions/auth'
 import Input from '../components/Input'
 // @ts-ignore
-import { phoneRegExp } from '../helpers'
+import { phoneRegex } from '../helpers'
 import userThumbnail from '../assets/profile.jpg'
 
 const Profile = () => {
@@ -34,34 +34,84 @@ const Profile = () => {
 	}, [])
 
 	useEffect(() => {
-		dispatch(loadUser())
-		if (isAuthenticated.status && isAuthenticated.user) {
-			setProfile(isAuthenticated.user)
-
-			if (isAuthenticated.user?._id !== id) {
-				navigate(`/profile/${isAuthenticated.user?._id}`)
+		if (!id || id === 'undefined' || id === 'null') {
+			if (isAuthenticated.status && isAuthenticated.user) {
+				setProfile(isAuthenticated.user)
 			}
-			if (!isAuthenticated.user) {
-				navigate('/')
+		} else {
+			async function dispatchLoadUser() {
+				await dispatch(loadUser())
+			}
+
+			try {
+				dispatchLoadUser()
+
+				if (isAuthenticated.status && isAuthenticated.user) {
+					setProfile(isAuthenticated.user)
+				}
+
+				return () => dispatch(clearLoading())
+			} catch (err) {
+				console.error(err)
+
+				return () => {
+					dispatch(clearLoading())
+				}
 			}
 		}
-	}, [navigate])
+	}, [isAuthenticated.status])
 
 	useEffect(() => {
-		if (error) {
+		if (error.status) {
 			setTimeout(() => {
 				dispatch(clearErrors())
 			}, 3000)
 		}
-	}, [error])
+	}, [error.status])
 
 	useEffect(() => {
-		if (success) {
+		if (success.status) {
 			setTimeout(() => {
 				dispatch(clearSuccess())
 			}, 3000)
 		}
-	}, [success])
+	}, [success.status])
+
+	const handleLogout = async () => {
+		async function dispatchLogoutUser() {
+			await dispatch(logoutUser())
+			navigate('/')
+		}
+
+		try {
+			await dispatchLogoutUser()
+			return () => {
+				dispatch(clearLoading())
+			}
+		} catch (err) {
+			console.error(err)
+			return () => {
+				dispatch(clearLoading())
+			}
+		}
+	}
+
+	useEffect(() => {
+		if (profile) {
+			formik.setValues({
+				firstName: profile.name.first || '',
+				lastName: profile.name.last || '',
+				email: profile.email || '',
+				phone: profile.phone || '',
+				address: profile.address || '',
+				age: profile.age || '',
+				company: profile.company || '',
+				eyeColor: profile.eyeColor || '',
+				password: '',
+				confirmPassword: '',
+			})
+		}
+	}, [profile])
 
 	const formik = useFormik({
 		initialValues: {
@@ -90,55 +140,42 @@ const Profile = () => {
 				.oneOf([Yup.ref('password'), null], 'Passwords must match'),
 			company: Yup.string(),
 			eyeColor: Yup.string(),
-			phone: Yup.string().matches(phoneRegExp, 'Phone number is not valid'),
+			phone: Yup.string().matches(phoneRegex, 'Phone number is not valid'),
 			address: Yup.string(),
 		}),
-		onSubmit: values => {
-			if (id) dispatch(updateUser(id, values))
+		onSubmit: async values => {
+			async function dispatchUpdateUser() {
+				if (id)
+					await dispatch(
+						updateUser(id, { ...values, name: { first: values.firstName, last: values.lastName } }),
+					)
+				const token = localStorage.getItem('token')
 
-			setProfile({
-				...values,
-				name: { first: values.firstName, last: values.lastName },
-			})
-			setIsEdit(false)
+				if (isAuthenticated.status && isAuthenticated.user && token)
+					setProfile(isAuthenticated.user)
+				if (isAuthenticated.user?._id !== id) navigate(`/profile/${isAuthenticated.user?._id}`)
+				if (!isAuthenticated.user) navigate('/')
 
-			formik.resetForm()
-			dispatch(clearLoading())
+				setIsEdit(false)
 
-			setTimeout(
-				() => {
-					dispatch(clearSuccess())
-				},
+				return () => {
+					dispatch(clearLoading())
+				}
+			}
 
-				3000,
-			)
-
-			setTimeout(
-				() => {
-					dispatch(clearErrors())
-				},
-
-				3000,
-			)
+			try {
+				await dispatchUpdateUser()
+				return () => {
+					dispatch(clearLoading())
+				}
+			} catch (err) {
+				console.error(err)
+				return () => {
+					dispatch(clearLoading())
+				}
+			}
 		},
 	})
-
-	useEffect(() => {
-		if (profile) {
-			formik.setValues({
-				firstName: profile?.name?.first || '',
-				lastName: profile?.name?.last || '',
-				email: profile?.email || '',
-				password: '',
-				confirmPassword: '',
-				phone: profile?.phone || '',
-				address: profile?.address || '',
-				age: moment().diff(profile?.age, 'years'),
-				company: profile?.company || '',
-				eyeColor: profile?.eyeColor || '',
-			})
-		}
-	}, [profile])
 
 	return (
 		<Box
@@ -182,7 +219,7 @@ const Profile = () => {
 					</Box>
 					<Box display="flex" justifyContent="space-around" mt={4} width="30%">
 						<Box display="flex" flexDirection="column" alignItems="center">
-							<Typography sx={{ position: 'relative', top: '0' }}>
+							<Typography sx={{ position: 'relative', top: '0', color: 'black' }}>
 								{isAuthenticated.user?.balance}
 							</Typography>
 							<Button
@@ -236,7 +273,7 @@ const Profile = () => {
 							)}
 						</Box>
 					</Box>
-					{error.status && (
+					{error.status && error.statusCode !== 401 && error.statusCode !== 403 && (
 						<Alert
 							severity="error"
 							sx={{
@@ -288,8 +325,8 @@ const Profile = () => {
 								type="text"
 								value={formik.values.firstName}
 								onChange={formik.handleChange}
-								error={formik.touched.firstName && Boolean(formik.errors.firstName)}
-								helperText={formik.touched.firstName && formik.errors.firstName}
+								error={isEdit && formik.touched.firstName && Boolean(formik.errors.firstName)}
+								helperText={isEdit && formik.touched.firstName && formik.errors.firstName}
 								margin
 								required={isEdit}
 								disabled={!isEdit}
@@ -301,8 +338,8 @@ const Profile = () => {
 								type="text"
 								value={formik.values.lastName}
 								onChange={formik.handleChange}
-								error={formik.touched.lastName && Boolean(formik.errors.lastName)}
-								helperText={formik.touched.lastName && formik.errors.lastName}
+								error={isEdit && formik.touched.lastName && Boolean(formik.errors.lastName)}
+								helperText={isEdit && formik.touched.lastName && formik.errors.lastName}
 								margin
 								required={isEdit}
 								disabled={!isEdit}
@@ -313,8 +350,8 @@ const Profile = () => {
 								type="email"
 								value={formik.values.email}
 								onChange={formik.handleChange}
-								error={formik.touched.email && Boolean(formik.errors.email)}
-								helperText={formik.touched.email && formik.errors.email}
+								error={isEdit && formik.touched.email && Boolean(formik.errors.email)}
+								helperText={isEdit && formik.touched.email && formik.errors.email}
 								margin
 								required={isEdit}
 								disabled={!isEdit}
@@ -326,8 +363,8 @@ const Profile = () => {
 								type="password"
 								value={formik.values.password}
 								onChange={formik.handleChange}
-								error={formik.touched.password && Boolean(formik.errors.password)}
-								helperText={formik.touched.password && formik.errors.password}
+								error={isEdit && formik.touched.password && Boolean(formik.errors.password)}
+								helperText={isEdit && formik.touched.password && formik.errors.password}
 								margin
 								required={isEdit}
 								disabled={!isEdit}
@@ -339,8 +376,12 @@ const Profile = () => {
 								type="password"
 								value={formik.values.confirmPassword}
 								onChange={formik.handleChange}
-								error={formik.touched.confirmPassword && Boolean(formik.errors.confirmPassword)}
-								helperText={formik.touched.confirmPassword && formik.errors.confirmPassword}
+								error={
+									isEdit && formik.touched.confirmPassword && Boolean(formik.errors.confirmPassword)
+								}
+								helperText={
+									isEdit && formik.touched.confirmPassword && formik.errors.confirmPassword
+								}
 								margin
 								required={isEdit}
 								disabled={!isEdit}
@@ -351,8 +392,8 @@ const Profile = () => {
 								type="text"
 								value={formik.values.age}
 								onChange={formik.handleChange}
-								error={formik.touched.age && Boolean(formik.errors.age)}
-								helperText={formik.touched.age && formik.errors.age}
+								error={isEdit && formik.touched.age && Boolean(formik.errors.age)}
+								helperText={isEdit && formik.touched.age && formik.errors.age}
 								margin
 								required={isEdit}
 								disabled
@@ -363,8 +404,8 @@ const Profile = () => {
 								type="text"
 								value={formik.values.company}
 								onChange={formik.handleChange}
-								error={formik.touched.company && Boolean(formik.errors.company)}
-								helperText={formik.touched.company && formik.errors.company}
+								error={isEdit && formik.touched.company && Boolean(formik.errors.company)}
+								helperText={isEdit && formik.touched.company && formik.errors.company}
 								margin
 								disabled={!isEdit}
 							/>
@@ -375,8 +416,8 @@ const Profile = () => {
 								type="text"
 								value={formik.values.eyeColor}
 								onChange={formik.handleChange}
-								error={formik.touched.eyeColor && Boolean(formik.errors.eyeColor)}
-								helperText={formik.touched.eyeColor && formik.errors.eyeColor}
+								error={isEdit && formik.touched.eyeColor && Boolean(formik.errors.eyeColor)}
+								helperText={isEdit && formik.touched.eyeColor && formik.errors.eyeColor}
 								margin
 								disabled={!isEdit}
 							/>
@@ -386,8 +427,8 @@ const Profile = () => {
 								type="tel"
 								value={formik.values.phone}
 								onChange={formik.handleChange}
-								error={formik.touched.phone && Boolean(formik.errors.phone)}
-								helperText={formik.touched.phone && formik.errors.phone}
+								error={isEdit && formik.touched.phone && Boolean(formik.errors.phone)}
+								helperText={isEdit && formik.touched.phone && formik.errors.phone}
 								margin
 								disabled={!isEdit}
 							/>
@@ -397,23 +438,15 @@ const Profile = () => {
 								type="text"
 								value={formik.values.address}
 								onChange={formik.handleChange}
-								error={formik.touched.address && Boolean(formik.errors.address)}
-								helperText={formik.touched.address && formik.errors.address}
+								error={isEdit && formik.touched.address && Boolean(formik.errors.address)}
+								helperText={isEdit && formik.touched.address && formik.errors.address}
 								margin
 								disabled={!isEdit}
 								fullWidth
 							/>
 						</Box>
 					</form>
-					<Button
-						variant="contained"
-						color="error"
-						onClick={() => {
-							dispatch(logoutUser())
-							navigate('/')
-						}}
-						sx={{ mb: '3rem' }}
-					>
+					<Button variant="contained" color="error" onClick={handleLogout} sx={{ mb: '3rem' }}>
 						Logout
 					</Button>
 				</>

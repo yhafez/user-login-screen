@@ -10,7 +10,7 @@ import { clearLoading, loadUser, register } from '../store/actions/auth'
 
 import Input from '../components/Input'
 // @ts-ignore
-import { phoneRegExp } from '../helpers'
+import { phoneRegex } from '../helpers'
 
 const Signup = () => {
 	const navigate = useNavigate()
@@ -23,16 +23,25 @@ const Signup = () => {
 	}, [])
 
 	useEffect(() => {
-		dispatch(loadUser())
+		async function dispatchLoadUser() {
+			await dispatch(loadUser())
+		}
 
-		const token = localStorage.getItem('token')
-		if (isAuthenticated.status && token) {
-			navigate(`/profile/${isAuthenticated.user?._id}`)
+		try {
+			dispatchLoadUser()
+
+			const token = localStorage.getItem('token')
+			if (isAuthenticated.status && token) navigate(`/profile/${isAuthenticated.user?._id}`)
+
+			return () => dispatch(clearLoading())
+		} catch (err) {
+			console.error(err)
+
+			return () => {
+				dispatch(clearLoading())
+			}
 		}
-		return () => {
-			dispatch(clearLoading())
-		}
-	}, [dispatch, isAuthenticated.status, navigate])
+	}, [isAuthenticated.status])
 
 	const formik = useFormik({
 		initialValues: {
@@ -68,18 +77,18 @@ const Signup = () => {
 			lastName: Yup.string().required('Last name is required'),
 			company: Yup.string(),
 			eyeColor: Yup.string(),
-			phone: Yup.string().matches(phoneRegExp, 'Phone number is not valid'),
+			phone: Yup.string().matches(phoneRegex, 'Phone number is not valid'),
 			address: Yup.string(),
 		}),
 		onSubmit: async values => {
-			dispatch(register(values))
-
-			if (isAuthenticated.status) {
+			await dispatch(register(values))
+			const token = localStorage.getItem('token')
+			if (isAuthenticated.status && token) {
 				navigate(`/profile/${isAuthenticated.user?._id}`)
 			}
 
-			if (error.status) {
-				console.error(error.message)
+			return () => {
+				dispatch(clearLoading())
 			}
 		},
 	})
@@ -104,7 +113,9 @@ const Signup = () => {
 					<Typography variant="h4" sx={{ mt: 4, mb: 2 }}>
 						Sign Up
 					</Typography>
-					{error.status && <Typography sx={{ color: 'error.main' }}>{error.message}</Typography>}
+					{error.status && error.statusCode !== 401 && error.statusCode !== 403 && (
+						<Typography sx={{ color: 'error.main' }}>{error.message}</Typography>
+					)}
 					<form
 						style={{
 							display: 'flex',

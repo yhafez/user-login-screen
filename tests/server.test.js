@@ -41,7 +41,7 @@ const user = {
 const urlRegex = /^https?:\/\/[^\s$.?#].[^\s]*$/
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const addressRegex = /^[0-9]+ [a-zA-Z ]+$/
-const token = jwt.sign(
+let token = jwt.sign(
 	{ _id: user._id, email: user.email, user: { ...user, id: user._id, name: user.firstName } },
 	process.env.JWT_SECRET,
 	{
@@ -52,6 +52,7 @@ const token = jwt.sign(
 describe('POST /auth/register', () => {
 	it('should create a new user', async () => {
 		const res = await request.post('/auth/register').send(user)
+		token = res.body.token
 		expect(res).to.have.status(200)
 		expect(res.body).to.be.an('object')
 		expect(res.body).to.have.property('user')
@@ -301,14 +302,28 @@ describe('GET /auth/me', () => {
 		expect(res.body).to.be.an('object')
 		expect(res.body).to.have.property('user')
 		expect(res.body.user).to.be.an('object')
-		expect(res.body.user).to.have.property('id')
-		expect(res.body.user.id).to.be.a('string')
+		expect(res.body.user).to.have.property('_id')
+		expect(res.body.user._id).to.be.a('string')
+		expect(res.body.user).to.have.property('guid')
+		expect(res.body.user.guid).to.be.a('string')
+		expect(res.body.user).to.have.property('isActive')
+		expect(res.body.user.isActive).to.be.a('boolean')
+		expect(res.body.user).to.have.property('balance')
+		expect(res.body.user.balance).to.be.a('string')
+		expect(res.body.user).to.have.property('picture')
+		expect(res.body.user.picture).to.be.a('string')
+		expect(res.body.user).to.have.property('age')
+		expect(res.body.user.age).to.be.a('number')
 		expect(res.body.user).to.have.property('name')
-		expect(res.body.user.name).to.be.a('string')
+		expect(res.body.user.name).to.be.an('object')
+		expect(res.body.user.name).to.have.property('first')
+		expect(res.body.user.name.first).to.be.a('string')
+		expect(res.body.user.name).to.have.property('last')
+		expect(res.body.user.name.last).to.be.a('string')
 		expect(res.body.user).to.have.property('email')
 		expect(res.body.user.email).to.be.a('string')
-		expect(res.body.user).to.have.property('birthdate')
-		expect(res.body.user.birthdate).to.be.a('string')
+		expect(res.body.user).to.have.property('age')
+		expect(res.body.user.age).to.be.a('number')
 		expect(res.body.user).to.have.property('company')
 		expect(res.body.user.company).to.be.a('string')
 		expect(res.body.user).to.have.property('eyeColor')
@@ -325,7 +340,7 @@ describe('GET /auth/me', () => {
 		expect(res.body).to.be.an('object')
 		expect(res.body).to.have.property('message')
 		expect(res.body.message).to.be.a('string')
-		expect(res.body.message).to.equal('Forbidden')
+		expect(res.body.message).to.equal('Invalid token')
 	})
 })
 
@@ -429,7 +444,7 @@ describe('GET /users/:id', () => {
 		expect(res.body).to.be.an('object')
 		expect(res.body).to.have.property('message')
 		expect(res.body.message).to.be.a('string')
-		expect(res.body.message).to.equal('Unauthorized')
+		expect(res.body.message).to.equal('No authorization header')
 	})
 
 	it('should return 403 if token is invalid', async () => {
@@ -438,7 +453,7 @@ describe('GET /users/:id', () => {
 		expect(res.body).to.be.an('object')
 		expect(res.body).to.have.property('message')
 		expect(res.body.message).to.be.a('string')
-		expect(res.body.message).to.equal('Forbidden')
+		expect(res.body.message).to.equal('Invalid token')
 	})
 
 	it('should return 400 if user is not found', async () => {
@@ -495,12 +510,13 @@ describe('PUT /users/:id', () => {
 			birthdate: '1990-01-01',
 			password: '123456789aA!',
 			email: user.email,
+			age: 30,
 		})
 		expect(res).to.have.status(401)
 		expect(res.body).to.be.an('object')
 		expect(res.body).to.have.property('message')
 		expect(res.body.message).to.be.a('string')
-		expect(res.body.message).to.equal('Unauthorized')
+		expect(res.body.message).to.equal('No authorization header')
 	})
 
 	it('should return 403 if token is invalid', async () => {
@@ -515,12 +531,13 @@ describe('PUT /users/:id', () => {
 				birthdate: '1990-01-01',
 				password: '123456789aA!',
 				email: user.email,
+				age: 30,
 			})
 		expect(res).to.have.status(403)
 		expect(res.body).to.be.an('object')
 		expect(res.body).to.have.property('message')
 		expect(res.body.message).to.be.a('string')
-		expect(res.body.message).to.equal('Forbidden')
+		expect(res.body.message).to.equal('Invalid token')
 	})
 
 	it('should return 400 if id is not a valid uuid', async () => {
@@ -535,6 +552,7 @@ describe('PUT /users/:id', () => {
 				birthdate: '1990-01-01',
 				password: '123456789aA!',
 				email: user.email,
+				age: 30,
 			})
 		expect(res).to.have.status(400)
 		expect(res.body).to.be.an('object')
@@ -555,37 +573,42 @@ describe('PUT /users/:id', () => {
 				birthdate: '1990-01-01',
 				password: '123456789aA!',
 				email: user.email,
+				age: 30,
 			})
+
 		expect(res).to.have.status(200)
 		expect(res.body).to.be.an('object')
-		expect(res.body).to.have.property('_id')
-		expect(res.body._id).to.be.a('string')
-		expect(res.body).to.have.property('guid')
-		expect(res.body.guid).to.be.a('string')
-		expect(res.body).to.have.property('isActive')
-		expect(res.body.isActive).to.be.a('boolean')
-		expect(res.body).to.have.property('balance')
-		expect(res.body.balance).to.be.a('string')
-		expect(res.body).to.have.property('picture')
-		expect(res.body.picture).to.be.a('string')
-		expect(res.body).to.have.property('age')
-		expect(res.body.age).to.be.a('number')
-		expect(res.body).to.have.property('eyeColor')
-		expect(res.body.eyeColor).to.be.a('string')
-		expect(res.body).to.have.property('name')
-		expect(res.body.name).to.be.an('object')
-		expect(res.body.name).to.have.property('first')
-		expect(res.body.name.first).to.be.a('string')
-		expect(res.body.name).to.have.property('last')
-		expect(res.body.name.last).to.be.a('string')
-		expect(res.body).to.have.property('company')
-		expect(res.body.company).to.be.a('string')
-		expect(res.body).to.have.property('email')
-		expect(res.body.email).to.be.a('string')
-		expect(res.body).to.have.property('phone')
-		expect(res.body.phone).to.be.a('string')
-		expect(res.body).to.have.property('address')
-		expect(res.body.address).to.be.a('string')
+		expect(res.body).to.have.property('user')
+		expect(res.body.user).to.be.an('object')
+		expect(res.body.user).to.have.property('_id')
+		expect(res.body.user._id).to.be.a('string')
+		expect(res.body.user).to.have.property('guid')
+		expect(res.body.user.guid).to.be.a('string')
+		expect(res.body.user).to.have.property('isActive')
+		expect(res.body.user.isActive).to.be.a('boolean')
+		expect(res.body.user).to.have.property('balance')
+		expect(res.body.user.balance).to.be.a('string')
+		expect(res.body.user).to.have.property('picture')
+		expect(res.body.user.picture).to.be.a('string')
+		expect(res.body.user).to.have.property('age')
+		expect(res.body.user.age).to.be.a('number')
+		expect(res.body.user).to.have.property('eyeColor')
+		expect(res.body.user.eyeColor).to.be.a('string')
+		expect(res.body.user).to.have.property('name')
+		expect(res.body.user.name).to.be.an('object')
+		expect(res.body.user.name).to.have.property('first')
+		expect(res.body.user.name.first).to.be.a('string')
+		expect(res.body.user.name).to.have.property('last')
+		expect(res.body.user.name.last).to.be.a('string')
+		expect(res.body.user).to.have.property
+		expect(res.body.user).to.have.property('company')
+		expect(res.body.user.company).to.be.a('string')
+		expect(res.body.user).to.have.property('email')
+		expect(res.body.user.email).to.be.a('string')
+		expect(res.body.user).to.have.property('phone')
+		expect(res.body.user.phone).to.be.a('string')
+		expect(res.body.user).to.have.property('address')
+		expect(res.body.user.address).to.be.a('string')
 	})
 
 	it('should return 200 if user is found and update only the fields sent', async () => {
@@ -600,37 +623,41 @@ describe('PUT /users/:id', () => {
 				birthdate: '1990-01-01',
 				password: '123456789aA!',
 				email: user.email,
+				age: 30,
 			})
 		expect(res).to.have.status(200)
 		expect(res.body).to.be.an('object')
-		expect(res.body).to.have.property('_id')
-		expect(res.body._id).to.be.a('string')
-		expect(res.body).to.have.property('guid')
-		expect(res.body.guid).to.be.a('string')
-		expect(res.body).to.have.property('isActive')
-		expect(res.body.isActive).to.be.a('boolean')
-		expect(res.body).to.have.property('balance')
-		expect(res.body.balance).to.be.a('string')
-		expect(res.body).to.have.property('picture')
-		expect(res.body.picture).to.be.a('string')
-		expect(res.body).to.have.property('age')
-		expect(res.body.age).to.be.a('number')
-		expect(res.body).to.have.property('eyeColor')
-		expect(res.body.eyeColor).to.be.a('string')
-		expect(res.body).to.have.property('name')
-		expect(res.body.name).to.be.an('object')
-		expect(res.body.name).to.have.property('first')
-		expect(res.body.name.first).to.be.a('string')
-		expect(res.body.name).to.have.property('last')
-		expect(res.body.name.last).to.be.a('string')
-		expect(res.body).to.have.property('company')
-		expect(res.body.company).to.be.a('string')
-		expect(res.body).to.have.property('email')
-		expect(res.body.email).to.be.a('string')
-		expect(res.body).to.have.property('phone')
-		expect(res.body.phone).to.be.a('string')
-		expect(res.body).to.have.property('address')
-		expect(res.body.address).to.be.a('string')
+		expect(res.body).to.have.property('user')
+		expect(res.body.user).to.be.an('object')
+		expect(res.body.user).to.have.property('_id')
+		expect(res.body.user._id).to.be.a('string')
+		expect(res.body.user).to.have.property('guid')
+		expect(res.body.user.guid).to.be.a('string')
+		expect(res.body.user).to.have.property('isActive')
+		expect(res.body.user.isActive).to.be.a('boolean')
+		expect(res.body.user).to.have.property('balance')
+		expect(res.body.user.balance).to.be.a('string')
+		expect(res.body.user).to.have.property('picture')
+		expect(res.body.user.picture).to.be.a('string')
+		expect(res.body.user).to.have.property('age')
+		expect(res.body.user.age).to.be.a('number')
+		expect(res.body.user).to.have.property('eyeColor')
+		expect(res.body.user.eyeColor).to.be.a('string')
+		expect(res.body.user).to.have.property('name')
+		expect(res.body.user.name).to.be.an('object')
+		expect(res.body.user.name).to.have.property('first')
+		expect(res.body.user.name.first).to.be.a('string')
+		expect(res.body.user.name).to.have.property('last')
+		expect(res.body.user.name.last).to.be.a('string')
+		expect(res.body.user).to.have.property
+		expect(res.body.user).to.have.property('company')
+		expect(res.body.user.company).to.be.a('string')
+		expect(res.body.user).to.have.property('email')
+		expect(res.body.user.email).to.be.a('string')
+		expect(res.body.user).to.have.property('phone')
+		expect(res.body.user.phone).to.be.a('string')
+		expect(res.body.user).to.have.property('address')
+		expect(res.body.user.address).to.be.a('string')
 	})
 })
 
@@ -654,7 +681,7 @@ describe('DELETE /users/:id', () => {
 		expect(res.body).to.be.an('object')
 		expect(res.body).to.have.property('message')
 		expect(res.body.message).to.be.a('string')
-		expect(res.body.message).to.be.equal('Unauthorized')
+		expect(res.body.message).to.be.equal('No authorization header')
 	})
 
 	it('should return 403 if token is invalid', async () => {
@@ -665,7 +692,7 @@ describe('DELETE /users/:id', () => {
 		expect(res.body).to.be.an('object')
 		expect(res.body).to.have.property('message')
 		expect(res.body.message).to.be.a('string')
-		expect(res.body.message).to.be.equal('Forbidden')
+		expect(res.body.message).to.be.equal('Invalid token')
 	})
 
 	it('should return 400 if user is not found', async () => {
@@ -678,15 +705,6 @@ describe('DELETE /users/:id', () => {
 	})
 
 	it('should return 200 if user is found', async () => {
-		const newUser = await request.post('/auth/register').send({
-			email: faker.internet.email(),
-			password: '123456aA!',
-			name: {
-				first: 'test',
-				last: 'test',
-			},
-			birthdate: '1990-01-01',
-		})
 		const res = await request
 			.delete(`/users/${newUser.body.user._id}`)
 			.set('Authorization', `Bearer ${token}`)

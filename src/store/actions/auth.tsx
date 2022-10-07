@@ -15,6 +15,7 @@ const initialState: AuthState = {
 	error: {
 		status: false,
 		message: null,
+		statusCode: null,
 	},
 	success: {
 		status: false,
@@ -28,7 +29,7 @@ const authSlice = createSlice({
 	initialState,
 	reducers: {
 		registerSuccess: (state, action) => {
-			localStorage.setItem('token', JSON.stringify(action.payload.token))
+			localStorage.setItem('token', action.payload.token)
 			return {
 				...state,
 				...action.payload,
@@ -43,6 +44,7 @@ const authSlice = createSlice({
 				error: {
 					status: false,
 					message: null,
+					statusCode: null,
 				},
 				success: {
 					status: true,
@@ -65,7 +67,8 @@ const authSlice = createSlice({
 				},
 				error: {
 					status: true,
-					message: action.payload,
+					message: action.payload.message,
+					statusCode: action.payload.statusCode,
 				},
 				success: {
 					status: false,
@@ -78,7 +81,7 @@ const authSlice = createSlice({
 				...state,
 				isAuthenticated: {
 					status: true,
-					user: action.payload,
+					user: action.payload.user,
 				},
 				loading: {
 					status: false,
@@ -87,6 +90,7 @@ const authSlice = createSlice({
 				error: {
 					status: false,
 					message: null,
+					statusCode: null,
 				},
 				success: {
 					status: false,
@@ -109,7 +113,8 @@ const authSlice = createSlice({
 				},
 				error: {
 					status: true,
-					message: action.payload,
+					message: action.payload.message,
+					statusCode: action.payload.statusCode,
 				},
 				success: {
 					status: false,
@@ -118,7 +123,7 @@ const authSlice = createSlice({
 			}
 		},
 		loginSuccess: (state, action) => {
-			localStorage.setItem('token', JSON.stringify(action.payload.token))
+			localStorage.setItem('token', action.payload.token)
 			return {
 				...state,
 				...action.payload,
@@ -133,6 +138,7 @@ const authSlice = createSlice({
 				error: {
 					status: false,
 					message: null,
+					statusCode: null,
 				},
 				success: {
 					status: true,
@@ -155,7 +161,8 @@ const authSlice = createSlice({
 				},
 				error: {
 					status: true,
-					message: action.payload,
+					message: action.payload.message,
+					statusCode: action.payload.statusCode,
 				},
 				success: {
 					status: false,
@@ -179,6 +186,7 @@ const authSlice = createSlice({
 				error: {
 					status: false,
 					message: null,
+					statusCode: null,
 				},
 				success: {
 					status: true,
@@ -197,6 +205,7 @@ const authSlice = createSlice({
 				error: {
 					status: false,
 					message: null,
+					statusCode: null,
 				},
 				success: {
 					status: true,
@@ -220,6 +229,7 @@ const authSlice = createSlice({
 				error: {
 					status: false,
 					message: null,
+					statusCode: null,
 				},
 				success: {
 					status: true,
@@ -254,6 +264,7 @@ const authSlice = createSlice({
 				error: {
 					status: false,
 					message: null,
+					statusCode: null,
 				},
 				success: {
 					status: false,
@@ -277,6 +288,7 @@ const authSlice = createSlice({
 				error: {
 					status: false,
 					message: null,
+					statusCode: null,
 				},
 				success: {
 					status: true,
@@ -284,7 +296,7 @@ const authSlice = createSlice({
 				},
 				isAuthenticated: {
 					status: true,
-					user: action.payload,
+					user: action.payload.user,
 				},
 			}
 		},
@@ -295,6 +307,7 @@ const authSlice = createSlice({
 				error: {
 					status: false,
 					message: null,
+					statusCode: null,
 				},
 			}
 		},
@@ -360,6 +373,7 @@ const authSlice = createSlice({
 				error: {
 					status: false,
 					message: null,
+					statusCode: null,
 				},
 				success: {
 					status: false,
@@ -408,16 +422,24 @@ export const selectUser = (state: RootState) => state.auth.isAuthenticated.user
 export const loadUser = () => async (dispatch: AppDispatch) => {
 	dispatch(setLoading('Loading user...'))
 	try {
-		const res = await fetch('/api/auth/me')
+		const res = await fetch('/api/auth/me', {
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${localStorage.getItem('token')}`,
+			},
+		})
 		const data = await res.json()
-
-		if (data.success) {
-			dispatch(userLoaded(data.user))
-		} else {
-			dispatch(authError(data.message))
+		if (data && data.user) dispatch(userLoaded(data))
+		else {
+			dispatch(
+				authError({
+					message: data.message,
+					statusCode: res.status,
+				}),
+			)
 		}
 	} catch (err: any) {
-		dispatch(authError(err.message))
+		dispatch(authError({ message: err.message, statusCode: err.status }))
 	}
 }
 
@@ -429,15 +451,19 @@ export const register = (formData: RegisterFormData) => async (dispatch: AppDisp
 			headers: {
 				'Content-Type': 'application/json',
 			},
-			body: JSON.stringify(formData),
+			body: JSON.stringify({
+				...formData,
+				name: {
+					first: formData.firstName,
+					last: formData.lastName,
+				},
+			}),
 		})
+
 		const data = await res.json()
 
-		if (data.success) {
-			dispatch(registerSuccess(data.message))
-		} else {
-			dispatch(registerFail(data.message))
-		}
+		if (data && data.token) dispatch(registerSuccess(data))
+		else dispatch(registerFail(data.message))
 	} catch (err: any) {
 		dispatch(registerFail(err.message))
 	}
@@ -454,14 +480,10 @@ export const login = (formData: LoginFormData) => async (dispatch: AppDispatch) 
 			body: JSON.stringify(formData),
 		})
 		const data = await res.json()
-
-		if (data.success) {
-			dispatch(loginSuccess(data.message))
-		} else {
-			dispatch(loginFail(data.message))
-		}
+		if (data && data.token) dispatch(loginSuccess(data))
+		else dispatch(loginFail({ message: data.message, statusCode: res.status }))
 	} catch (err: any) {
-		dispatch(loginFail(err.message))
+		dispatch(loginFail(err))
 	}
 }
 
@@ -471,11 +493,10 @@ export const logoutUser = () => async (dispatch: AppDispatch) => {
 		const res = await fetch('/api/auth/logout')
 		const data = await res.json()
 
-		if (data.success) {
-			dispatch(logout())
-		}
+		if (data && data.message) await dispatch(logout())
+		else dispatch(authError({ message: data.message, statusCode: res.status }))
 	} catch (err: any) {
-		dispatch(authError(err.response.data.msg))
+		dispatch(authError({ message: err.message, statusCode: 500 }))
 	}
 }
 
@@ -491,37 +512,38 @@ export const fetchAllUsers =
 			const res = await fetch('/api/users')
 			const data = await res.json()
 
-			if (data.success) {
+			if (data && data.users) {
 				dispatch(fetchUsers(data.users))
 			} else {
-				dispatch(authError(data.message))
+				dispatch(authError({ message: data.message, statusCode: res.status }))
 			}
 		} catch (err: any) {
-			dispatch(authError(err.message))
+			dispatch(authError({ message: err.message, statusCode: 500 }))
 		}
 	}
 
 export const updateUser =
-	(id: string, formData: UpdateUserFormData) =>
-	async (dispatch: AppDispatch, getState: () => RootState) => {
+	(id: string, formData: UpdateUserFormData) => async (dispatch: AppDispatch) => {
 		dispatch(setLoading('Updating user...'))
+
 		try {
 			const res = await fetch(`/api/users/${id}`, {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
+					Authorization: `Bearer ${localStorage.getItem('token')}`,
 				},
 				body: JSON.stringify(formData),
 			})
-			const data = await res.json()
 
-			if (data.success) {
-				dispatch(setUserUpdated(data.message))
+			const data = await res.json()
+			if (data && data.user) {
+				dispatch(setUserUpdated(data))
 			} else {
-				dispatch(authError(data.message))
+				dispatch(authError({ message: data.message, statusCode: res.status }))
 			}
 		} catch (err: any) {
-			dispatch(authError(err.message))
+			dispatch(authError({ message: err.message, statusCode: 500 }))
 		}
 	}
 
@@ -534,13 +556,13 @@ export const deleteUser =
 			})
 			const data = await res.json()
 
-			if (data.success) {
+			if (data && data.message) {
 				dispatch(clearUser())
 			} else {
-				dispatch(authError(data.message))
+				dispatch(authError({ message: data.message, statusCode: res.status }))
 			}
 		} catch (err: any) {
-			dispatch(authError(err.message))
+			dispatch(authError({ message: err.message, statusCode: 500 }))
 		}
 	}
 
@@ -594,6 +616,7 @@ export interface AuthState {
 	error: {
 		status: boolean
 		message: string | null
+		statusCode: number | null
 	}
 
 	success: {
@@ -626,9 +649,9 @@ export interface UpdateUserFormData {
 	password?: string
 	age?: number | string | null | undefined
 	eyeColor?: string
-	name?: {
-		first: string
-		last: string
+	name: {
+		first?: string
+		last?: string
 	}
 	company?: string
 	salt?: string
