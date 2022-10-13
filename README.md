@@ -127,15 +127,3 @@ Below is an example of user login inside the database.
 
 ~~- Unit Tests of the API~~
 ~~- Functional Tests of the UI~~
-
-```
-
-```
-
-```
-
-```
-
-```
-
-```
