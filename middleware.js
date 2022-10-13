@@ -16,26 +16,22 @@ export const authenticateUser = async (req, res, next) => {
 			return res.status(401).json({ message: 'No token found' })
 		}
 
-		const decoded = jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-			if (err) {
-				return res.status(403).json({ message: 'Invalid token' })
-			}
-			return decoded
-		})
+		process.env.JWT_SECRET
+			? jwt.verify(token, process.env.JWT_SECRET, (e, decoded) => {
+					if (e) {
+						return res.status(403).json({ message: 'Invalid token' })
+					}
+					const user = db.data?.users.find(u => u._id === decoded._id)
+					if (!user) {
+						return res.status(401).json({ message: 'User not found' })
+					}
+					req.user = user
 
-		if (!decoded) {
-			return res.status(401).json({ message: 'Invalid token' })
-		}
-
-		const user = db.data?.users.find(u => u._id === decoded._id)
-		if (!user) {
-			return res.status(401).json({ message: 'User not found' })
-		}
-
-		req.user = user
-		next()
-	} catch (err) {
-		next(err)
+					next()
+			  })
+			: next(new Error('No JWT_SECRET found'))
+	} catch (e) {
+		next(e)
 	}
 }
 
@@ -43,14 +39,7 @@ export const validateFormData = (req, res, next) => {
 	try {
 		const { email, password, name, birthdate, age, company, eyeColor, phone, address } = req.body
 		// Validate required fields
-		if (
-			!name ||
-			!name?.first?.trim() ||
-			!name?.last?.trim() ||
-			!email ||
-			!password ||
-			(!birthdate && !age)
-		) {
+		if (!name || !name.first || !name.last || !email || !password || (!birthdate && !age)) {
 			return res.status(400).json({ message: 'Please fill all the fields' })
 		}
 
@@ -97,7 +86,7 @@ export const validateFormData = (req, res, next) => {
 		if (!password.match(/[0-9]/)) {
 			return res.status(400).json({ message: 'Password must contain at least one number' })
 		}
-		if (!password.match(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/)) {
+		if (!password.match(/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/)) {
 			return res.json({ message: 'Password must contain at least one special character' })
 		}
 
@@ -204,8 +193,8 @@ export const validateFormData = (req, res, next) => {
 		}
 
 		next()
-	} catch (err) {
-		console.error(err)
+	} catch (e) {
+		console.error(e)
 		return res.status(500).json({ message: 'Internal server error' })
 	}
 }

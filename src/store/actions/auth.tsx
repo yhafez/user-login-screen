@@ -77,6 +77,7 @@ const authSlice = createSlice({
 			}
 		},
 		userLoaded: (state, action) => {
+			localStorage.setItem('token', action.payload.token)
 			return {
 				...state,
 				isAuthenticated: {
@@ -422,24 +423,30 @@ export const selectUser = (state: RootState) => state.auth.isAuthenticated.user
 export const loadUser = () => async (dispatch: AppDispatch) => {
 	dispatch(setLoading('Loading user...'))
 	try {
-		const res = await fetch('/api/auth/me', {
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${localStorage.getItem('token')}`,
-			},
-		})
-		const data = await res.json()
-		if (data && data.user) dispatch(userLoaded(data))
-		else {
-			dispatch(
-				authError({
-					message: data.message,
-					statusCode: res.status,
-				}),
-			)
+		const token = localStorage.getItem('token')
+
+		if (token) {
+			const res = await fetch('/api/auth/me', {
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+			})
+			const data = await res.json()
+			if (data && data.user) dispatch(userLoaded({ user: data.user, token }))
+			else {
+				dispatch(
+					authError({
+						message: data.message,
+						statusCode: res.status,
+					}),
+				)
+			}
+		} else {
+			dispatch(authError({ message: 'No token found', statusCode: 401 }))
 		}
-	} catch (err: any) {
-		dispatch(authError({ message: err.message, statusCode: err.status }))
+	} catch (e: any) {
+		dispatch(authError({ message: e.message, statusCode: 500 }))
 	}
 }
 
@@ -461,11 +468,11 @@ export const register = (formData: RegisterFormData) => async (dispatch: AppDisp
 		})
 
 		const data = await res.json()
-
-		if (data && data.token) dispatch(registerSuccess(data))
-		else dispatch(registerFail(data.message))
-	} catch (err: any) {
-		dispatch(registerFail(err.message))
+		if (data && data.token && data.user)
+			dispatch(registerSuccess({ token: data.token, user: data.user }))
+		else dispatch(registerFail({ message: data.message, statusCode: res.status }))
+	} catch (e: any) {
+		dispatch(registerFail({ message: e.message, statusCode: 500 }))
 	}
 }
 
@@ -480,10 +487,11 @@ export const login = (formData: LoginFormData) => async (dispatch: AppDispatch) 
 			body: JSON.stringify(formData),
 		})
 		const data = await res.json()
-		if (data && data.token) dispatch(loginSuccess(data))
-		else dispatch(loginFail({ message: data.message, statusCode: res.status }))
-	} catch (err: any) {
-		dispatch(loginFail(err))
+		if (data && data.token && data.user)
+			dispatch(loginSuccess({ token: data.token, user: data.user }))
+		else dispatch(loginFail({ message: data.message, statusCode: 500 }))
+	} catch (e: any) {
+		dispatch(loginFail(e))
 	}
 }
 
@@ -493,34 +501,28 @@ export const logoutUser = () => async (dispatch: AppDispatch) => {
 		const res = await fetch('/api/auth/logout')
 		const data = await res.json()
 
-		if (data && data.message) await dispatch(logout())
+		if (data) await dispatch(logout())
 		else dispatch(authError({ message: data.message, statusCode: res.status }))
-	} catch (err: any) {
-		dispatch(authError({ message: err.message, statusCode: 500 }))
+	} catch (e: any) {
+		dispatch(authError({ message: e.message, statusCode: 500 }))
 	}
 }
 
-export const fetchAllUsers =
-	() =>
-	async (
-		dispatch: AppDispatch,
+export const fetchAllUsers = () => async (dispatch: AppDispatch) => {
+	dispatch(setLoading('Fetching users...'))
+	try {
+		const res = await fetch('/api/users')
+		const data = await res.json()
 
-		getState: () => RootState,
-	) => {
-		dispatch(setLoading('Fetching users...'))
-		try {
-			const res = await fetch('/api/users')
-			const data = await res.json()
-
-			if (data && data.users) {
-				dispatch(fetchUsers(data.users))
-			} else {
-				dispatch(authError({ message: data.message, statusCode: res.status }))
-			}
-		} catch (err: any) {
-			dispatch(authError({ message: err.message, statusCode: 500 }))
+		if (data && data.users) {
+			dispatch(fetchUsers(data.users))
+		} else {
+			dispatch(authError({ message: data.message, statusCode: res.status }))
 		}
+	} catch (e: any) {
+		dispatch(authError({ message: e.message, statusCode: 500 }))
 	}
+}
 
 export const updateUser =
 	(id: string, formData: UpdateUserFormData) => async (dispatch: AppDispatch) => {
@@ -538,12 +540,12 @@ export const updateUser =
 
 			const data = await res.json()
 			if (data && data.user) {
-				dispatch(setUserUpdated(data))
+				dispatch(setUserUpdated({ user: data.user }))
 			} else {
 				dispatch(authError({ message: data.message, statusCode: res.status }))
 			}
-		} catch (err: any) {
-			dispatch(authError({ message: err.message, statusCode: 500 }))
+		} catch (e: any) {
+			dispatch(authError({ message: e.message, statusCode: 500 }))
 		}
 	}
 
@@ -561,8 +563,8 @@ export const deleteUser =
 			} else {
 				dispatch(authError({ message: data.message, statusCode: res.status }))
 			}
-		} catch (err: any) {
-			dispatch(authError({ message: err.message, statusCode: 500 }))
+		} catch (e: any) {
+			dispatch(authError({ message: e.message, statusCode: 500 }))
 		}
 	}
 

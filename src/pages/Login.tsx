@@ -20,6 +20,7 @@ const Login = () => {
 	}, [])
 
 	useEffect(() => {
+		if (!localStorage.getItem('token')) return
 		async function dispatchLoadUser() {
 			await dispatch(loadUser())
 		}
@@ -31,8 +32,8 @@ const Login = () => {
 			if (isAuthenticated.status && token) navigate(`/profile/${isAuthenticated.user?._id}`)
 
 			return () => dispatch(clearLoading())
-		} catch (err) {
-			console.error(err)
+		} catch (e) {
+			console.error(e)
 
 			return () => {
 				dispatch(clearLoading())
@@ -57,8 +58,8 @@ const Login = () => {
 
 				const token = localStorage.getItem('token')
 				if (isAuthenticated.status && token) navigate(`/profile/${isAuthenticated.user?._id}`)
-			} catch (err) {
-				console.error(err)
+			} catch (e) {
+				console.error(e)
 
 				return () => {
 					dispatch(clearLoading())

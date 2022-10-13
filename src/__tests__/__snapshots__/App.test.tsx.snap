@@ -63,9 +63,7 @@ exports[`App renders Login correctly 1`] = `
     />
     <p
       class="MuiTypography-root MuiTypography-body1 css-1nkhxq8-MuiTypography-root"
-    >
-      fetch is not defined
-    </p>
+    />
     <form>
       <div
         class="MuiBox-root css-1t7e8l1"
@@ -702,11 +700,6 @@ exports[`App renders Signup correctly 1`] = `
     >
       Sign Up
     </h4>
-    <p
-      class="MuiTypography-root MuiTypography-body1 css-1nkhxq8-MuiTypography-root"
-    >
-      fetch is not defined
-    </p>
     <form
       style="display: flex; flex-direction: column; width: 80%; padding: 2rem; overflow-y: scroll; justify-content: space-around;"
     >

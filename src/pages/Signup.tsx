@@ -23,6 +23,7 @@ const Signup = () => {
 	}, [])
 
 	useEffect(() => {
+		if (!localStorage.getItem('token')) return
 		async function dispatchLoadUser() {
 			await dispatch(loadUser())
 		}
@@ -34,8 +35,8 @@ const Signup = () => {
 			if (isAuthenticated.status && token) navigate(`/profile/${isAuthenticated.user?._id}`)
 
 			return () => dispatch(clearLoading())
-		} catch (err) {
-			console.error(err)
+		} catch (e) {
+			console.error(e)
 
 			return () => {
 				dispatch(clearLoading())
@@ -113,7 +114,7 @@ const Signup = () => {
 					<Typography variant="h4" sx={{ mt: 4, mb: 2 }}>
 						Sign Up
 					</Typography>
-					{error.status && error.statusCode !== 401 && error.statusCode !== 403 && (
+					{error.status && error.statusCode && [400, 403].includes(error.statusCode) && (
 						<Typography sx={{ color: 'error.main' }}>{error.message}</Typography>
 					)}
 					<form

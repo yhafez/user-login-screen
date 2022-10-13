@@ -5,7 +5,6 @@ import { Circles } from 'react-loader-spinner'
 import { useFormik } from 'formik'
 import * as Yup from 'yup'
 import { useAppDispatch, useAppSelector } from '../store'
-import moment from 'moment'
 
 import {
 	updateUser,
@@ -34,15 +33,13 @@ const Profile = () => {
 	}, [])
 
 	useEffect(() => {
+		if (!localStorage.getItem('token')) return
+		async function dispatchLoadUser() {
+			await dispatch(loadUser())
+		}
 		if (!id || id === 'undefined' || id === 'null') {
-			if (isAuthenticated.status && isAuthenticated.user) {
-				setProfile(isAuthenticated.user)
-			}
+			if (isAuthenticated.status && isAuthenticated.user) setProfile(isAuthenticated.user)
 		} else {
-			async function dispatchLoadUser() {
-				await dispatch(loadUser())
-			}
-
 			try {
 				dispatchLoadUser()
 
@@ -51,8 +48,8 @@ const Profile = () => {
 				}
 
 				return () => dispatch(clearLoading())
-			} catch (err) {
-				console.error(err)
+			} catch (e) {
+				console.error(e)
 
 				return () => {
 					dispatch(clearLoading())
@@ -88,8 +85,8 @@ const Profile = () => {
 			return () => {
 				dispatch(clearLoading())
 			}
-		} catch (err) {
-			console.error(err)
+		} catch (e) {
+			console.error(e)
 			return () => {
 				dispatch(clearLoading())
 			}
@@ -168,8 +165,8 @@ const Profile = () => {
 				return () => {
 					dispatch(clearLoading())
 				}
-			} catch (err) {
-				console.error(err)
+			} catch (e) {
+				console.error(e)
 				return () => {
 					dispatch(clearLoading())
 				}

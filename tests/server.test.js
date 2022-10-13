@@ -40,14 +40,35 @@ const user = {
 }
 const urlRegex = /^https?:\/\/[^\s$.?#].[^\s]*$/
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const addressRegex = /^[0-9]+ [a-zA-Z ]+$/
-let token = jwt.sign(
-	{ _id: user._id, email: user.email, user: { ...user, id: user._id, name: user.firstName } },
-	process.env.JWT_SECRET,
-	{
-		expiresIn: '1m',
-	},
-)
+const addressRegex = /^[0-9]+ ['a-zA-Z ]+$/
+let token = process.env.JWT_SECRET
+	? jwt.sign(
+			{ _id: user._id, email: user.email, user: { ...user, id: user._id, name: user.firstName } },
+			process.env.JWT_SECRET,
+			{
+				expiresIn: '1m',
+			},
+	  )
+	: console.error('JWT_SECRET not set')
+
+describe('404 page', () => {
+	it('should return 404 page', async () => {
+		const res = await request.get('/404')
+		expect(res).to.have.status(404)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Not found')
+	})
+	it('should return 404 page', async () => {
+		const res = await request.get('/auth/404')
+		expect(res).to.have.status(404)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Not found')
+	})
+})
 
 describe('POST /auth/register', () => {
 	it('should create a new user', async () => {
@@ -244,6 +265,63 @@ describe('POST /auth/register', () => {
 		})
 		expect(res2).to.have.status(400)
 	})
+
+	it('should return 400 if body is not JSON', async () => {
+		const res = await request.post('/auth/register').send('invalidBody')
+		expect(res).to.have.status(400)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Please fill all the fields')
+	})
+
+	it('should return 400 if body is empty', async () => {
+		const res = await request.post('/auth/register').send({})
+		expect(res).to.have.status(400)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Please fill all the fields')
+	})
+
+	it('should return 400 if body is missing', async () => {
+		const res = await request.post('/auth/register')
+		expect(res).to.have.status(400)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Please fill all the fields')
+	})
+
+	it('should return 405 if method is not POST', async () => {
+		const res = await request.get('/auth/register')
+		expect(res).to.have.status(405)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Method not allowed')
+
+		const res2 = await request.put('/auth/register')
+		expect(res2).to.have.status(405)
+		expect(res2.body).to.be.an('object')
+		expect(res2.body).to.have.property('message')
+		expect(res2.body.message).to.be.a('string')
+		expect(res2.body.message).to.equal('Method not allowed')
+
+		const res3 = await request.patch('/auth/register')
+		expect(res3).to.have.status(405)
+		expect(res3.body).to.be.an('object')
+		expect(res3.body).to.have.property('message')
+		expect(res3.body.message).to.be.a('string')
+		expect(res3.body.message).to.equal('Method not allowed')
+
+		const res4 = await request.delete('/auth/register')
+		expect(res4).to.have.status(405)
+		expect(res4.body).to.be.an('object')
+		expect(res4.body).to.have.property('message')
+		expect(res4.body.message).to.be.a('string')
+		expect(res4.body.message).to.equal('Method not allowed')
+	})
 })
 
 describe('POST /auth/login', () => {
@@ -292,6 +370,63 @@ describe('POST /auth/login', () => {
 			password: '',
 		})
 		expect(res2).to.have.status(400)
+	})
+
+	it('should return 400 if body is not JSON', async () => {
+		const res = await request.post('/auth/login').send('invalidBody')
+		expect(res).to.have.status(400)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Invalid request body')
+	})
+
+	it('should return 400 if body is empty', async () => {
+		const res = await request.post('/auth/login').send({})
+		expect(res).to.have.status(400)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Invalid request body')
+	})
+
+	it('should return 400 if body is missing', async () => {
+		const res = await request.post('/auth/login')
+		expect(res).to.have.status(400)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Invalid request body')
+	})
+
+	it('should return 405 if method is not POST', async () => {
+		const res = await request.get('/auth/login')
+		expect(res).to.have.status(405)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Method not allowed')
+
+		const res2 = await request.put('/auth/login')
+		expect(res2).to.have.status(405)
+		expect(res2.body).to.be.an('object')
+		expect(res2.body).to.have.property('message')
+		expect(res2.body.message).to.be.a('string')
+		expect(res2.body.message).to.equal('Method not allowed')
+
+		const res3 = await request.patch('/auth/login')
+		expect(res3).to.have.status(405)
+		expect(res3.body).to.be.an('object')
+		expect(res3.body).to.have.property('message')
+		expect(res3.body.message).to.be.a('string')
+		expect(res3.body.message).to.equal('Method not allowed')
+
+		const res4 = await request.delete('/auth/login')
+		expect(res4).to.have.status(405)
+		expect(res4.body).to.be.an('object')
+		expect(res4.body).to.have.property('message')
+		expect(res4.body.message).to.be.a('string')
+		expect(res4.body.message).to.equal('Method not allowed')
 	})
 })
 
@@ -342,6 +477,45 @@ describe('GET /auth/me', () => {
 		expect(res.body.message).to.be.a('string')
 		expect(res.body.message).to.equal('Invalid token')
 	})
+
+	it('should return 401 if token is missing', async () => {
+		const res = await request.get('/auth/me')
+		expect(res).to.have.status(401)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('No authorization header')
+	})
+
+	it('should return 405 if method is not GET', async () => {
+		const res = await request.post('/auth/me')
+		expect(res).to.have.status(405)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Method not allowed')
+
+		const res2 = await request.put('/auth/me')
+		expect(res2).to.have.status(405)
+		expect(res2.body).to.be.an('object')
+		expect(res2.body).to.have.property('message')
+		expect(res2.body.message).to.be.a('string')
+		expect(res2.body.message).to.equal('Method not allowed')
+
+		const res3 = await request.patch('/auth/me')
+		expect(res3).to.have.status(405)
+		expect(res3.body).to.be.an('object')
+		expect(res3.body).to.have.property('message')
+		expect(res3.body.message).to.be.a('string')
+		expect(res3.body.message).to.equal('Method not allowed')
+
+		const res4 = await request.delete('/auth/me')
+		expect(res4).to.have.status(405)
+		expect(res4.body).to.be.an('object')
+		expect(res4.body).to.have.property('message')
+		expect(res4.body.message).to.be.a('string')
+		expect(res4.body.message).to.equal('Method not allowed')
+	})
 })
 
 describe('GET /auth/logout', () => {
@@ -352,6 +526,36 @@ describe('GET /auth/logout', () => {
 		expect(res.body).to.have.property('message')
 		expect(res.body.message).to.be.a('string')
 		expect(res.body.message).to.equal('User logged out')
+	})
+
+	it('should return 405 if method is not GET', async () => {
+		const res = await request.post('/auth/logout')
+		expect(res).to.have.status(405)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Method not allowed')
+
+		const res2 = await request.put('/auth/logout')
+		expect(res2).to.have.status(405)
+		expect(res2.body).to.be.an('object')
+		expect(res2.body).to.have.property('message')
+		expect(res2.body.message).to.be.a('string')
+		expect(res2.body.message).to.equal('Method not allowed')
+
+		const res3 = await request.patch('/auth/logout')
+		expect(res3).to.have.status(405)
+		expect(res3.body).to.be.an('object')
+		expect(res3.body).to.have.property('message')
+		expect(res3.body.message).to.be.a('string')
+		expect(res3.body.message).to.equal('Method not allowed')
+
+		const res4 = await request.delete('/auth/logout')
+		expect(res4).to.have.status(405)
+		expect(res4.body).to.be.an('object')
+		expect(res4.body).to.have.property('message')
+		expect(res4.body.message).to.be.a('string')
+		expect(res4.body.message).to.equal('Method not allowed')
 	})
 })
 
@@ -434,6 +638,54 @@ describe('GET /users', () => {
 		expect(res.body.results[0]).to.have.property('salt')
 		expect(res.body.results[0].salt).to.be.a('string')
 		expect(res.body.results[0].salt).to.be.empty
+	})
+
+	it('should return 403 if token is invalid', async () => {
+		const res = await request.get('/users').set('Authorization', 'Bearer 123')
+		expect(res).to.have.status(403)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Invalid token')
+	})
+
+	it('should return 401 if token is missing', async () => {
+		const res = await request.get('/users')
+		expect(res).to.have.status(401)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('No authorization header')
+	})
+
+	it('should return 405 if method is not GET', async () => {
+		const res = await request.post('/users').set('Authorization', `Bearer ${token}`)
+		expect(res).to.have.status(405)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Method not allowed')
+
+		const res2 = await request.put('/users').set('Authorization', `Bearer ${token}`)
+		expect(res2).to.have.status(405)
+		expect(res2.body).to.be.an('object')
+		expect(res2.body).to.have.property('message')
+		expect(res2.body.message).to.be.a('string')
+		expect(res2.body.message).to.equal('Method not allowed')
+
+		const res3 = await request.delete('/users').set('Authorization', `Bearer ${token}`)
+		expect(res3).to.have.status(405)
+		expect(res3.body).to.be.an('object')
+		expect(res3.body).to.have.property('message')
+		expect(res3.body.message).to.be.a('string')
+		expect(res3.body.message).to.equal('Method not allowed')
+
+		const res4 = await request.patch('/users').set('Authorization', `Bearer ${token}`)
+		expect(res4).to.have.status(405)
+		expect(res4.body).to.be.an('object')
+		expect(res4.body).to.have.property('message')
+		expect(res4.body.message).to.be.a('string')
+		expect(res4.body.message).to.equal('Method not allowed')
 	})
 })
 
@@ -561,6 +813,60 @@ describe('PUT /users/:id', () => {
 		expect(res.body.message).to.equal('User not found')
 	})
 
+	it('should return 400 if user is not found', async () => {
+		const res = await request
+			.put(`/users/${user._id}1`)
+			.set('Authorization', `Bearer ${token}`)
+			.send({
+				name: {
+					first: 'John',
+					last: 'Doe',
+				},
+				birthdate: '1990-01-01',
+				password: '123456789aA!',
+				email: user.email,
+				age: 30,
+			})
+		expect(res).to.have.status(400)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('User not found')
+	})
+
+	it('should return 400 if body is not JSON', async () => {
+		const res = await request
+			.put(`/users/${user._id}`)
+			.set('Authorization', `Bearer ${token}`)
+			.send('invalidBody')
+		expect(res).to.have.status(400)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Please fill all the fields')
+	})
+
+	it('should return 400 if body is empty', async () => {
+		const res = await request
+			.put(`/users/${user._id}`)
+			.set('Authorization', `Bearer ${token}`)
+			.send({})
+		expect(res).to.have.status(400)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Please fill all the fields')
+	})
+
+	it('should return 400 if body is missing', async () => {
+		const res = await request.put(`/users/${user._id}`).set('Authorization', `Bearer ${token}`)
+		expect(res).to.have.status(400)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Please fill all the fields')
+	})
+
 	it('should return 200 if user is found', async () => {
 		const res = await request
 			.put(`/users/${user._id}`)
@@ -681,7 +987,7 @@ describe('DELETE /users/:id', () => {
 		expect(res.body).to.be.an('object')
 		expect(res.body).to.have.property('message')
 		expect(res.body.message).to.be.a('string')
-		expect(res.body.message).to.be.equal('No authorization header')
+		expect(res.body.message).to.equal('No authorization header')
 	})
 
 	it('should return 403 if token is invalid', async () => {
@@ -692,7 +998,7 @@ describe('DELETE /users/:id', () => {
 		expect(res.body).to.be.an('object')
 		expect(res.body).to.have.property('message')
 		expect(res.body.message).to.be.a('string')
-		expect(res.body.message).to.be.equal('Invalid token')
+		expect(res.body.message).to.equal('Invalid token')
 	})
 
 	it('should return 400 if user is not found', async () => {
@@ -701,7 +1007,7 @@ describe('DELETE /users/:id', () => {
 		expect(res.body).to.be.an('object')
 		expect(res.body).to.have.property('message')
 		expect(res.body.message).to.be.a('string')
-		expect(res.body.message).to.be.equal('User not found')
+		expect(res.body.message).to.equal('User not found')
 	})
 
 	it('should return 200 if user is found', async () => {
@@ -712,6 +1018,26 @@ describe('DELETE /users/:id', () => {
 		expect(res.body).to.be.an('object')
 		expect(res.body).to.have.property('message')
 		expect(res.body.message).to.be.a('string')
-		expect(res.body.message).to.be.equal('User deleted successfully')
+		expect(res.body.message).to.equal('User deleted successfully')
+	})
+
+	it('should return 405 if method is not GET, PUT, or DELETE', async () => {
+		const res = await request
+			.post(`/users/${newUser.body.user._id}`)
+			.set('Authorization', `Bearer ${token}`)
+		expect(res).to.have.status(405)
+		expect(res.body).to.be.an('object')
+		expect(res.body).to.have.property('message')
+		expect(res.body.message).to.be.a('string')
+		expect(res.body.message).to.equal('Method not allowed')
+
+		const res2 = await request
+			.patch(`/users/${newUser.body.user._id}`)
+			.set('Authorization', `Bearer ${token}`)
+		expect(res2).to.have.status(405)
+		expect(res2.body).to.be.an('object')
+		expect(res2.body).to.have.property('message')
+		expect(res2.body.message).to.be.a('string')
+		expect(res2.body.message).to.equal('Method not allowed')
 	})
 })

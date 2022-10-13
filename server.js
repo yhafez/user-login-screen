@@ -8,7 +8,6 @@ import * as dotenv from 'dotenv'
 import jwt from 'jsonwebtoken'
 import moment from 'moment'
 import crypto from 'crypto'
-
 import { authenticateUser, validateFormData } from './middleware.js'
 
 dotenv.config()
@@ -28,12 +27,32 @@ const adapter = new JSONFile(file)
 export const db = new Low(adapter)
 db.read()
 
-app.get('/auth/me', authenticateUser, (req, res) => {
-	res.json({ user: req.user })
+app.get('/auth/me', authenticateUser, (req, res, next) => {
+	try {
+		if (req.user) res.json({ user: req.user })
+		else res.status(401).json({ message: 'User not found' })
+	} catch (e) {
+		console.error(e)
+		next(e)
+	}
+})
+
+app.all('/auth/me', (req, res, next) => {
+	try {
+		if (req.method !== 'GET') {
+			res.status(405).json({ message: 'Method not allowed' })
+		}
+	} catch (e) {
+		console.error(e)
+		next(e)
+	}
 })
 
 app.post('/auth/register', validateFormData, async (req, res, next) => {
 	try {
+		if (typeof req.body !== 'object') {
+			return res.status(400).json({ message: 'Invalid request body' })
+		}
 		const { email, password, name, birthdate, company, eyeColor, phone, address } = req.body
 		const { first, last } = name
 		if (moment(birthdate, 'YYYY-MM-DD', true).isValid() === false) {
@@ -55,7 +74,7 @@ app.post('/auth/register', validateFormData, async (req, res, next) => {
 			isActive: true,
 			balance: '$0.00',
 			picture: 'https://randomuser.me/api',
-			age: moment().diff(birthdate.slice(0, 10), 'years', false, 'YYYY-MM-DD'),
+			age: moment().diff(birthdate.slice(0, 10), 'years', false),
 			eyeColor: eyeColor?.trim(),
 			name: {
 				first: first.trim(),
@@ -71,20 +90,36 @@ app.post('/auth/register', validateFormData, async (req, res, next) => {
 		users.push(newUser)
 		db.write()
 
-		// Create token
-		const token = jwt.sign(newUser, process.env.JWT_SECRET)
-
-		return res.json({ token, user: { ...newUser, password: '', salt: '' } })
-	} catch (err) {
-		console.error(error)
-		next(err)
+		const token = process.env.JWT_SECRET && jwt.sign(newUser, process.env.JWT_SECRET)
+		if (token) {
+			return res.json({ token, user: { ...newUser, password: '', salt: '' } })
+		} else {
+			return res.status(500).json({ message: 'Error creating token' })
+		}
+	} catch (e) {
+		console.error(e)
+		next(e)
 	}
 })
 
-app.post('/auth/login', async (req, res) => {
+app.all('/auth/register', (req, res, next) => {
 	try {
+		if (req.method !== 'POST') {
+			res.status(405).json({ message: 'Method not allowed' })
+		}
+	} catch (e) {
+		console.error(e)
+		next(e)
+	}
+})
+
+app.post('/auth/login', async (req, res, next) => {
+	try {
+		if (typeof req.body !== 'object' || !req.body.email || !req.body.password) {
+			return res.status(400).json({ message: 'Invalid request body' })
+		}
 		const { email, password } = req.body
-		const user = db.data?.users.find(u => u.email === email.trim())
+		const user = email && password && db.data?.users.find(u => u.email === email.trim())
 		if (!user) {
 			return res.status(400).json({ message: 'User not found' })
 		}
@@ -94,33 +129,58 @@ app.post('/auth/login', async (req, res) => {
 			return res.status(400).json({ message: 'Password is incorrect' })
 		}
 
-		const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '1d' })
+		const token =
+			process.env.JWT_SECRET && jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '1d' })
 
 		return res.json({ token, user: { ...user, password: '', salt: '' } })
-	} catch (err) {
-		next(err)
+	} catch (e) {
+		console.error(e)
+		next(e)
+	}
+})
+
+app.all('/auth/login', (req, res, next) => {
+	try {
+		if (req.method !== 'POST') {
+			res.status(405).json({ message: 'Method not allowed' })
+		}
+	} catch (e) {
+		console.error(e)
+		next(e)
 	}
 })
 
 app.get('/auth/logout', (req, res, next) => {
 	try {
 		res.json({ message: 'User logged out' })
-	} catch (err) {
-		next(err)
+	} catch (e) {
+		console.error(e)
+		next(e)
+	}
+})
+
+app.all('/auth/logout', (req, res, next) => {
+	try {
+		if (req.method !== 'GET') {
+			res.status(405).json({ message: 'Method not allowed' })
+		}
+	} catch (e) {
+		console.error(e)
+		next(e)
 	}
 })
 
 app.get('/users', authenticateUser, (req, res, next) => {
 	try {
 		const { page = 1, limit = 10 } = req.query
-		const startIndex = (page - 1) * limit
-		const endIndex = page * limit
+		const startIndex = (+page - 1) * +limit
+		const endIndex = +page * +limit
 		const results = {}
 
 		if (db.data && db.data.users) {
 			if (endIndex < db.data.users.length) {
 				results.next = {
-					page: page + 1,
+					page: +page + 1,
 					limit,
 				}
 			}
@@ -128,7 +188,7 @@ app.get('/users', authenticateUser, (req, res, next) => {
 
 		if (startIndex > 0) {
 			results.previous = {
-				page: page - 1,
+				page: +page - 1,
 				limit,
 			}
 		}
@@ -138,8 +198,20 @@ app.get('/users', authenticateUser, (req, res, next) => {
 		})
 
 		return res.json(results)
-	} catch (err) {
-		next(err)
+	} catch (e) {
+		console.error(e)
+		next(e)
+	}
+})
+
+app.all('/users', (req, res, next) => {
+	try {
+		if (req.method !== 'GET') {
+			res.status(405).json({ message: 'Method not allowed' })
+		}
+	} catch (e) {
+		console.error(e)
+		next(e)
 	}
 })
 
@@ -151,8 +223,9 @@ app.get('/users/:id', authenticateUser, (req, res, next) => {
 		}
 
 		return res.json({ ...user, password: '', salt: '' })
-	} catch (err) {
-		next(err)
+	} catch (e) {
+		console.error(e)
+		next(e)
 	}
 })
 
@@ -179,9 +252,9 @@ app.put('/users/:id', authenticateUser, validateFormData, async (req, res, next)
 
 		req.user = user
 		return res.json({ user: { ...user, password: '', salt: '' } })
-	} catch (err) {
-		console.log(err)
-		next(err)
+	} catch (e) {
+		console.error(e)
+		next(e)
 	}
 })
 
@@ -199,18 +272,38 @@ app.delete('/users/:id', authenticateUser, async (req, res, next) => {
 		}
 
 		return res.status(500).json({ message: 'Something went wrong' })
-	} catch (err) {
-		next(err)
+	} catch (e) {
+		console.error(e)
+		next(e)
 	}
 })
 
-app.use('*', (req, res) => {
-	res.status(404).json({ message: 'Not found' })
+app.all('/users/:id', (req, res, next) => {
+	try {
+		if (req.method !== 'GET' && req.method !== 'PUT' && req.method !== 'DELETE') {
+			res.status(405).json({ message: 'Method not allowed' })
+		}
+	} catch (e) {
+		console.error(e)
+		next(e)
+	}
 })
 
-app.use((err, req, res, next) => {
-	console.error(err)
-	res.status(500).json({ message: 'Something went wrong' })
+app.use('*', (req, res, next) => {
+	try {
+		res.status(404).json({ message: 'Not found' })
+	} catch (e) {
+		console.error(e)
+		next(e)
+	}
+})
+
+app.use((e, req, res, next) => {
+	console.error(e)
+	if (res.headersSent) {
+		return next(e)
+	}
+	res.status(500).json({ message: `Something went wrong. ${e.message}` })
 })
 
 app.listen(5001, () => {

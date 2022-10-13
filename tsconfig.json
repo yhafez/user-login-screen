@@ -18,6 +18,6 @@
 		"types": ["jest", "node"]
 	},
 	"include": ["src"],
-	"exclude": ["config"],
+	"exclude": ["config", "node_modules"],
 	"references": [{ "path": "./tsconfig.node.json" }]
 }
