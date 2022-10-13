@@ -302,6 +302,29 @@ const authSlice = createSlice({
 			}
 		},
 
+		userUpdateError: (state, action) => {
+			return {
+				...state,
+				loading: {
+					status: false,
+					message: null,
+				},
+				error: {
+					status: true,
+					message: action.payload.message,
+					statusCode: action.payload.statusCode,
+				},
+				success: {
+					status: false,
+					message: null,
+				},
+				isAuthenticated: {
+					status: true,
+					user: state.isAuthenticated.user,
+				},
+			}
+		},
+
 		clearErrors: state => {
 			return {
 				...state,
@@ -405,6 +428,7 @@ export const {
 	clearAll,
 	authenticate,
 	setUserUpdated,
+	userUpdateError,
 } = authSlice.actions
 
 export default authSlice.reducer
@@ -542,31 +566,30 @@ export const updateUser =
 			if (data && data.user) {
 				dispatch(setUserUpdated({ user: data.user }))
 			} else {
-				dispatch(authError({ message: data.message, statusCode: res.status }))
+				dispatch(userUpdateError({ message: data.message, statusCode: res.status }))
 			}
 		} catch (e: any) {
-			dispatch(authError({ message: e.message, statusCode: 500 }))
+			dispatch(userUpdateError({ message: e.message, statusCode: 500 }))
 		}
 	}
 
-export const deleteUser =
-	(id: string) => async (dispatch: AppDispatch, getState: () => RootState) => {
-		dispatch(setLoading('Deleting user...'))
-		try {
-			const res = await fetch(`/api/users/${id}`, {
-				method: 'DELETE',
-			})
-			const data = await res.json()
+export const deleteUser = (id: string) => async (dispatch: AppDispatch) => {
+	dispatch(setLoading('Deleting user...'))
+	try {
+		const res = await fetch(`/api/users/${id}`, {
+			method: 'DELETE',
+		})
+		const data = await res.json()
 
-			if (data && data.message) {
-				dispatch(clearUser())
-			} else {
-				dispatch(authError({ message: data.message, statusCode: res.status }))
-			}
-		} catch (e: any) {
-			dispatch(authError({ message: e.message, statusCode: 500 }))
+		if (data && data.message) {
+			dispatch(clearUser())
+		} else {
+			dispatch(authError({ message: data.message, statusCode: res.status }))
 		}
+	} catch (e: any) {
+		dispatch(authError({ message: e.message, statusCode: 500 }))
 	}
+}
 
 // Utils
 
