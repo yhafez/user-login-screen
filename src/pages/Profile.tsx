@@ -310,7 +310,7 @@ const Profile = () => {
 						<Box
 							display="flex"
 							alignItems="center"
-							justifyContent="center"
+							justifyContent="space-between"
 							width="100%"
 							flexWrap="wrap"
 							sx={{ overflowY: 'scroll' }}

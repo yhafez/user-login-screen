@@ -133,7 +133,7 @@ const Signup = () => {
 							alignItems="center"
 							width="100%"
 							flexWrap="wrap"
-							justifyContent="space-around"
+							justifyContent="space-between"
 							sx={{ overflowY: 'scroll' }}
 						>
 							<Input

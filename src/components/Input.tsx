@@ -1,6 +1,6 @@
 import { ChangeEvent, KeyboardEvent } from 'react'
 import { Box, InputLabel, TextField } from '@mui/material'
-import MuiPhoneNumber from 'material-ui-phone-number'
+import MuiPhoneNumber from 'material-ui-phone-number-2'
 
 export interface InputProps {
 	id: string
@@ -35,7 +35,7 @@ const Input = ({
 }: InputProps) => {
 	return (
 		<>
-			<Box mb={1} width={fullWidth ? '100%' : 'auto'} mx={fullWidth ? 3 : 0}>
+			<Box mb={1} width={fullWidth ? '97%' : 'auto'}>
 				<InputLabel
 					sx={{
 						color: 'black',
