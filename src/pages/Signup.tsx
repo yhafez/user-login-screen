@@ -23,26 +23,15 @@ const Signup = () => {
 	}, [])
 
 	useEffect(() => {
-		if (!localStorage.getItem('token')) return
-		async function dispatchLoadUser() {
-			await dispatch(loadUser())
-		}
+		const dispatchLoadUser = async () => await dispatch(loadUser())
 
 		try {
 			dispatchLoadUser()
-
-			const token = localStorage.getItem('token')
-			if (isAuthenticated.status && token) navigate(`/profile/${isAuthenticated.user?._id}`)
-
-			return () => dispatch(clearLoading())
+			if (isAuthenticated.user) navigate(`/profile/${isAuthenticated.user._id}`)
 		} catch (e) {
-			console.error(e)
-
-			return () => {
-				dispatch(clearLoading())
-			}
+			console.error('Error loading user: ', e)
 		}
-	}, [isAuthenticated.status])
+	}, [isAuthenticated.user])
 
 	const formik = useFormik({
 		initialValues: {
@@ -83,14 +72,7 @@ const Signup = () => {
 		}),
 		onSubmit: async values => {
 			await dispatch(register(values))
-			const token = localStorage.getItem('token')
-			if (isAuthenticated.status && token) {
-				navigate(`/profile/${isAuthenticated.user?._id}`)
-			}
-
-			return () => {
-				dispatch(clearLoading())
-			}
+			if (isAuthenticated.user) navigate(`/profile/${isAuthenticated.user?._id}`)
 		},
 	})
 

@@ -143,7 +143,7 @@ export const validateFormData = (req, res, next) => {
 				'blue-gray',
 				'blue-grey',
 				'heterochromia',
-			].includes(eyeColor)
+			].includes(eyeColor.toLowerCase())
 		) {
 			return res.status(400).json({ message: 'Please select a valid eye color' })
 		}

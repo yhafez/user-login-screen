@@ -21,7 +21,7 @@ import { phoneRegex } from '../helpers'
 import userThumbnail from '../assets/profile.jpg'
 
 const Profile = () => {
-	const { id } = useParams()
+	const { userId } = useParams()
 	const navigate = useNavigate()
 	const dispatch = useAppDispatch()
 	const { isAuthenticated, loading, error, success } = useAppSelector(state => state.auth)
@@ -33,30 +33,27 @@ const Profile = () => {
 	}, [])
 
 	useEffect(() => {
-		if (!localStorage.getItem('token')) return
-		async function dispatchLoadUser() {
-			await dispatch(loadUser())
-		}
-		if (!id || id === 'undefined' || id === 'null') {
-			if (isAuthenticated.status && isAuthenticated.user) setProfile(isAuthenticated.user)
-		} else {
-			try {
-				dispatchLoadUser()
+		const dispatchLoadUser = async () => await dispatch(loadUser())
 
-				if (isAuthenticated.status && isAuthenticated.user) {
-					setProfile(isAuthenticated.user)
-				}
+		try {
+			dispatchLoadUser()
 
-				return () => dispatch(clearLoading())
-			} catch (e) {
-				console.error(e)
-
-				return () => {
-					dispatch(clearLoading())
-				}
-			}
+			if (isAuthenticated.status) {
+				if (isAuthenticated.user?._id !== userId) navigate(`/profile/${isAuthenticated.user?._id}`)
+				if (isAuthenticated.user) setProfile(isAuthenticated.user)
+			} else navigate('/')
+		} catch (e) {
+			console.error('Error loading user: ', e)
 		}
 	}, [isAuthenticated.status])
+
+	useEffect(() => {
+		if (isAuthenticated.user && success.status) {
+			setProfile(isAuthenticated.user)
+			setIsEdit(false)
+			formik.resetForm()
+		}
+	}, [isAuthenticated.user])
 
 	useEffect(() => {
 		if (error.status) {
@@ -73,6 +70,23 @@ const Profile = () => {
 			}, 3000)
 		}
 	}, [success.status])
+
+	useEffect(() => {
+		if (profile) {
+			formik.setValues({
+				firstName: profile.name.first || '',
+				lastName: profile.name.last || '',
+				email: profile.email || '',
+				phone: profile.phone || '',
+				address: profile.address || '',
+				age: profile.age || '',
+				company: profile.company || '',
+				eyeColor: profile.eyeColor || '',
+				password: '',
+				confirmPassword: '',
+			})
+		}
+	}, [profile])
 
 	const handleLogout = async () => {
 		async function dispatchLogoutUser() {
@@ -92,23 +106,6 @@ const Profile = () => {
 			}
 		}
 	}
-
-	useEffect(() => {
-		if (profile) {
-			formik.setValues({
-				firstName: profile.name.first || '',
-				lastName: profile.name.last || '',
-				email: profile.email || '',
-				phone: profile.phone || '',
-				address: profile.address || '',
-				age: profile.age || '',
-				company: profile.company || '',
-				eyeColor: profile.eyeColor || '',
-				password: '',
-				confirmPassword: '',
-			})
-		}
-	}, [profile])
 
 	const formik = useFormik({
 		initialValues: {
@@ -141,35 +138,17 @@ const Profile = () => {
 			address: Yup.string(),
 		}),
 		onSubmit: async values => {
-			async function dispatchUpdateUser() {
-				if (id)
-					await dispatch(
-						updateUser(id, { ...values, name: { first: values.firstName, last: values.lastName } }),
-					)
-				const token = localStorage.getItem('token')
-
-				if (isAuthenticated.status && isAuthenticated.user && token)
-					setProfile(isAuthenticated.user)
-				if (isAuthenticated.user?._id !== id) navigate(`/profile/${isAuthenticated.user?._id}`)
-				if (!isAuthenticated.user) navigate('/')
-
-				setIsEdit(false)
-
-				return () => {
-					dispatch(clearLoading())
-				}
-			}
-
 			try {
-				await dispatchUpdateUser()
-				return () => {
-					dispatch(clearLoading())
+				if (userId) {
+					await dispatch(
+						updateUser(userId, {
+							...values,
+							name: { first: values.firstName, last: values.lastName },
+						}),
+					)
 				}
 			} catch (e) {
-				console.error(e)
-				return () => {
-					dispatch(clearLoading())
-				}
+				console.error('Error updating user: ', e)
 			}
 		},
 	})
